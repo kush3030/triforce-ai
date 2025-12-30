@@ -94,7 +94,7 @@ Codex acts as a Technical Architect:
 Gemini builds the frontend:
 - Reads `frontend_plan.md`
 - Creates `frontend/` directory
-- Uses Tailwind CSS v3.4.x
+- Uses appropriate CSS framework based on the project
 - Creates placeholder API calls
 
 > **When done, press `Ctrl+C` to move to the next stage**
@@ -179,15 +179,6 @@ claude login
 ### Gemini hangs or can't create files
 
 Make sure you're running from the project directory, not your home folder. The Gemini CLI needs to be run from a specific project directory.
-
-### Tailwind CSS build errors
-
-The script instructs agents to use Tailwind v3.4.x. If you see v4 errors:
-
-```bash
-cd frontend
-npm install tailwindcss@^3.4.0 --save-dev
-```
 
 ### Stage doesn't move to next
 

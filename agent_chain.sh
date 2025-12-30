@@ -243,7 +243,7 @@ else
     echo ""
     read -p "Press Enter to start Gemini..."
 
-    GEMINI_PROMPT="Read $FRONTEND_PLAN and build the complete frontend in a frontend/ folder. Use Tailwind CSS v3.4.x (NOT v4). Create frontend/README.md with setup instructions."
+    GEMINI_PROMPT="Read $FRONTEND_PLAN and build the complete frontend in a frontend/ folder. Use any CSS framework or styling approach that fits the project. Create frontend/README.md with setup instructions."
 
     # Use -i flag for interactive mode with initial prompt, -y for YOLO mode
     gemini -y -i "$GEMINI_PROMPT"
