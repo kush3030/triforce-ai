@@ -22,9 +22,9 @@ Triforce AI chains together three powerful AI coding assistants to build complet
 
 | CLI Tool | Package | Tested Version | Install Command |
 |----------|---------|----------------|-----------------|
-| Codex | `@openai/codex` | Latest | `npm install -g @openai/codex` |
-| Gemini | `@google/gemini-cli` | Latest | `npm install -g @google/gemini-cli` |
-| Claude | `@anthropic-ai/claude-code` | Latest | `npm install -g @anthropic-ai/claude-code` |
+| Codex | `@openai/codex` | 0.36.0 | `npm install -g @openai/codex` |
+| Gemini | `@google/gemini-cli` | 0.22.4 | `npm install -g @google/gemini-cli` |
+| Claude | `@anthropic-ai/claude-code` | 2.0.76 | `npm install -g @anthropic-ai/claude-code` |
 
 ## Prerequisites
 
