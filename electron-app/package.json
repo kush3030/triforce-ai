@@ -1,0 +1,18 @@
+{
+  "name": "agent-chain-app",
+  "version": "1.0.0",
+  "description": "GUI for Agent Chain - Codex, Gemini, Claude pipeline",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "node-pty": "^1.1.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.2",
+    "electron": "^28.0.0"
+  }
+}

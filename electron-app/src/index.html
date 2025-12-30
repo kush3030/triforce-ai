@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Chain</title>
+    <link rel="stylesheet" href="../node_modules/xterm/css/xterm.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+            -webkit-app-region: drag;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 20px 0;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d9ff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* Stage Pipeline */
+        .pipeline {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            -webkit-app-region: no-drag;
+        }
+
+        .stage {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stage::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.3s ease;
+        }
+
+        .stage.active {
+            background: rgba(0, 217, 255, 0.1);
+            border-color: #00d9ff;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        }
+
+        .stage.active::before {
+            background: linear-gradient(90deg, #00d9ff, #a855f7);
+        }
+
+        .stage.completed {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: #22c55e;
+        }
+
+        .stage.completed::before {
+            background: #22c55e;
+        }
+
+        .stage-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .stage-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .stage:nth-child(1) .stage-icon { background: linear-gradient(135deg, #10b981, #059669); }
+        .stage:nth-child(2) .stage-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .stage:nth-child(3) .stage-icon { background: linear-gradient(135deg, #f97316, #ea580c); }
+        .stage:nth-child(4) .stage-icon { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+
+        .stage-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .stage-tool {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .stage-desc {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .stage-status {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 16px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 0;
+            -webkit-app-region: no-drag;
+        }
+
+        /* Start Screen */
+        .start-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .start-screen.hidden {
+            display: none;
+        }
+
+        .start-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .start-desc {
+            color: #888;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .prompt-input-container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .prompt-label {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .prompt-input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .prompt-input:focus {
+            border-color: #00d9ff;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        }
+
+        .prompt-input::placeholder {
+            color: #666;
+        }
+
+        .start-btn {
+            padding: 14px 48px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #00d9ff, #a855f7);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 217, 255, 0.4);
+        }
+
+        .start-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Terminal */
+        .terminal-container {
+            flex: 1;
+            background: #0d1117;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+        }
+
+        .terminal-container.visible {
+            display: flex;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .terminal-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #aaa;
+        }
+
+        .terminal-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .terminal-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .terminal-btn.stop {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .terminal-btn.stop:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        #terminal {
+            flex: 1;
+            padding: 8px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.running {
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Completion Screen */
+        .completion-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 24px;
+            z-index: 100;
+        }
+
+        .completion-screen.visible {
+            display: flex;
+        }
+
+        .completion-icon {
+            font-size: 64px;
+        }
+
+        .completion-title {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .completion-desc {
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div>
+                <div class="title">Agent Chain</div>
+                <div class="subtitle">Codex → Gemini → Claude Pipeline</div>
+            </div>
+        </div>
+
+        <div class="pipeline">
+            <div class="stage" id="stage-1">
+                <div class="stage-status" id="status-1">⏳</div>
+                <div class="stage-header">
+                    <div class="stage-icon">📋</div>
+                    <div>
+                        <div class="stage-name">Planning</div>
+                        <div class="stage-tool">Codex</div>
+                    </div>
+                </div>
+                <div class="stage-desc">Interactive Q&A to create implementation plan</div>
+            </div>
+
+            <div class="stage" id="stage-2">
+                <div class="stage-status" id="status-2">⏳</div>
+                <div class="stage-header">
+                    <div class="stage-icon">🎨</div>
+                    <div>
+                        <div class="stage-name">Frontend</div>
+                        <div class="stage-tool">Gemini</div>
+                    </div>
+                </div>
+                <div class="stage-desc">Build UI with mock APIs</div>
+            </div>
+
+            <div class="stage" id="stage-3">
+                <div class="stage-status" id="status-3">⏳</div>
+                <div class="stage-header">
+                    <div class="stage-icon">⚙️</div>
+                    <div>
+                        <div class="stage-name">Backend</div>
+                        <div class="stage-tool">Claude</div>
+                    </div>
+                </div>
+                <div class="stage-desc">Build APIs & wire up frontend</div>
+            </div>
+
+            <div class="stage" id="stage-4">
+                <div class="stage-status" id="status-4">⏳</div>
+                <div class="stage-header">
+                    <div class="stage-icon">🔍</div>
+                    <div>
+                        <div class="stage-name">Review</div>
+                        <div class="stage-tool">Codex</div>
+                    </div>
+                </div>
+                <div class="stage-desc">Code review & bug fixes</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="start-screen" id="start-screen">
+                <div class="start-title">🚀 Start Your Project</div>
+                <div class="start-desc">
+                    Describe your full-stack application and let the AI agents build it for you.
+                    Codex will plan, Gemini builds the frontend, Claude builds the backend.
+                </div>
+                <div class="prompt-input-container">
+                    <label class="prompt-label">What would you like to build?</label>
+                    <input
+                        type="text"
+                        class="prompt-input"
+                        id="project-prompt"
+                        placeholder="e.g., A task management app with user authentication and real-time updates"
+                        autofocus
+                    >
+                </div>
+                <button class="start-btn" id="start-btn">Start Building</button>
+            </div>
+
+            <div class="terminal-container" id="terminal-container">
+                <div class="terminal-header">
+                    <div class="terminal-title">Terminal Output</div>
+                    <div class="terminal-actions">
+                        <button class="terminal-btn stop" id="stop-btn">Stop</button>
+                    </div>
+                </div>
+                <div id="terminal"></div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Ready</span>
+            </div>
+            <div id="elapsed-time"></div>
+        </div>
+    </div>
+
+    <div class="completion-screen" id="completion-screen">
+        <div class="completion-icon">🎉</div>
+        <div class="completion-title">Build Complete!</div>
+        <div class="completion-desc">Your full-stack application has been generated.<br>Check the project directory for your code.</div>
+        <button class="start-btn" onclick="location.reload()">Start New Project</button>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const { Terminal } = require('xterm');
+        const { FitAddon } = require('xterm-addon-fit');
+
+        // Elements
+        const startScreen = document.getElementById('start-screen');
+        const terminalContainer = document.getElementById('terminal-container');
+        const projectPrompt = document.getElementById('project-prompt');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const elapsedTime = document.getElementById('elapsed-time');
+        const completionScreen = document.getElementById('completion-screen');
+
+        // Terminal setup
+        const term = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            theme: {
+                background: '#0d1117',
+                foreground: '#c9d1d9',
+                cursor: '#00d9ff',
+                cursorAccent: '#0d1117',
+                selection: 'rgba(0, 217, 255, 0.3)',
+                black: '#0d1117',
+                red: '#ff7b72',
+                green: '#7ee787',
+                yellow: '#d29922',
+                blue: '#79c0ff',
+                magenta: '#d2a8ff',
+                cyan: '#a5d6ff',
+                white: '#c9d1d9'
+            }
+        });
+
+        const fitAddon = new FitAddon();
+        term.loadAddon(fitAddon);
+
+        let currentStage = 0;
+        let startTime = null;
+        let timerInterval = null;
+
+        // Initialize terminal
+        term.open(document.getElementById('terminal'));
+        setTimeout(() => fitAddon.fit(), 100);
+
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+            ipcRenderer.send('terminal-resize', { cols: term.cols, rows: term.rows });
+        });
+
+        // Terminal input
+        term.onData(data => {
+            ipcRenderer.send('terminal-input', data);
+        });
+
+        // Start button
+        startBtn.addEventListener('click', () => {
+            const prompt = projectPrompt.value.trim();
+            if (!prompt) {
+                projectPrompt.focus();
+                return;
+            }
+
+            startScreen.classList.add('hidden');
+            terminalContainer.classList.add('visible');
+            statusDot.classList.add('running');
+            statusText.textContent = 'Running...';
+            startTime = Date.now();
+            startTimer();
+            setStage(1);
+
+            setTimeout(() => {
+                fitAddon.fit();
+                ipcRenderer.send('terminal-resize', { cols: term.cols, rows: term.rows });
+                ipcRenderer.send('start-chain', prompt);
+            }, 100);
+        });
+
+        // Enter key starts
+        projectPrompt.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startBtn.click();
+            }
+        });
+
+        // Stop button
+        stopBtn.addEventListener('click', () => {
+            ipcRenderer.send('stop-chain');
+            statusDot.classList.remove('running');
+            statusText.textContent = 'Stopped';
+            stopTimer();
+        });
+
+        // Terminal data from main process
+        ipcRenderer.on('terminal-data', (event, data) => {
+            term.write(data);
+        });
+
+        // Stage change
+        ipcRenderer.on('stage-change', (event, stage) => {
+            setStage(stage);
+        });
+
+        // Chain complete
+        ipcRenderer.on('chain-complete', (event, exitCode) => {
+            statusDot.classList.remove('running');
+            stopTimer();
+
+            if (exitCode === 0) {
+                statusText.textContent = 'Complete';
+                for (let i = 1; i <= 4; i++) {
+                    document.getElementById(`stage-${i}`).classList.add('completed');
+                    document.getElementById(`status-${i}`).textContent = '✅';
+                }
+                setTimeout(() => {
+                    completionScreen.classList.add('visible');
+                }, 1000);
+            } else {
+                statusText.textContent = `Exited (${exitCode})`;
+            }
+        });
+
+        function setStage(stage) {
+            // Mark previous stages as completed
+            for (let i = 1; i < stage; i++) {
+                const el = document.getElementById(`stage-${i}`);
+                el.classList.remove('active');
+                el.classList.add('completed');
+                document.getElementById(`status-${i}`).textContent = '✅';
+            }
+
+            // Mark current stage as active
+            if (stage <= 4) {
+                const el = document.getElementById(`stage-${stage}`);
+                el.classList.remove('completed');
+                el.classList.add('active');
+                document.getElementById(`status-${stage}`).textContent = '🔄';
+            }
+
+            currentStage = stage;
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const mins = Math.floor(elapsed / 60);
+                const secs = elapsed % 60;
+                elapsedTime.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+    </script>
+</body>
+</html>
