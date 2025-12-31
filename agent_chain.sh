@@ -370,12 +370,8 @@ STEP 1: Read all plan files to understand the project:
 
 STEP 2: Run builds and fix any errors:
 - cd frontend && npm install && npm run build
-- If build fails, FIX THE ERRORS before continuing
-- Common issues to fix:
-  * Tailwind v4 issues: downgrade to tailwindcss@3.4.x, remove @tailwindcss/postcss
-  * PostCSS config: use { plugins: { tailwindcss: {}, autoprefixer: {} } }
-  * Missing imports or typos
-  * TypeScript errors
+- If build fails, analyze the root cause and FIX THE ERRORS before continuing
+- Check for missing dependencies, incorrect imports, or configuration issues
 
 STEP 3: Review frontend/ folder:
 - Check all components for bugs and errors
